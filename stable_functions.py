@@ -191,4 +191,55 @@ def get_current_balances(accounts):
     
     return balances
 
+def calculate_daily_balances(current_balance, planned_transactions, start_date, days_ahead=365):
+    """
+    Рассчитать ежедневные остатки на указанное количество дней вперед.
+    Использует уже загруженные данные без дополнительных API вызовов.
+    
+    Args:
+        current_balance: текущий остаток счета
+        planned_transactions: список плановых транзакций (уже полученных другой функцией)
+        start_date: начальная дата в формате "YYYY-MM-DD"
+        days_ahead: количество дней для расчета (по умолчанию 365)
+    
+    Returns:
+        dict: словарь с датами и остатками {date: balance}
+    """
+    from datetime import datetime, timedelta
+    
+    # Создаем словарь для группировки транзакций по датам
+    transactions_by_date = {}
+    for tx in planned_transactions:
+        tx_date = tx.get('date', '')
+        if tx_date:
+            if tx_date not in transactions_by_date:
+                transactions_by_date[tx_date] = []
+            transactions_by_date[tx_date].append(tx)
+    
+    # Рассчитываем остатки по дням
+    daily_balances = {}
+    running_balance = current_balance
+    
+    # Начальная дата
+    start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+    
+    for day_offset in range(days_ahead + 1):
+        current_dt = start_dt + timedelta(days=day_offset)
+        current_date_str = current_dt.strftime("%Y-%m-%d")
+        
+        # Добавляем транзакции за этот день
+        if current_date_str in transactions_by_date:
+            for tx in transactions_by_date[current_date_str]:
+                value = tx.get('value', 0)
+                tx_type = tx.get('type', '')
+                if tx_type == 'in':
+                    running_balance += value
+                elif tx_type == 'out':
+                    running_balance += value  # value уже отрицательный для исходящих
+        
+        daily_balances[current_date_str] = running_balance
+    
+    return daily_balances
+
+
 
