@@ -17,6 +17,13 @@ MONITORING_CONFIG = {
     'months_ahead': 12,        # Количество месяцев для прогноза
 }
 
+# Настройки проверки угрожающих балансов
+THREATENING_CONFIG = {
+    'account_ids': [190104],   # ID счетов для проверки угрожающих балансов (Модуль RUB)
+    'threshold': 100000,       # Порог угрожающего баланса в рублях
+    'days_ahead': 356,         # Количество дней для анализа
+}
+
 # Настройки Telegram бота
 TELEGRAM_CONFIG = {
     'bot_token': '8363091905:AAE8n7P1PwuQrmQRIGYPSLmgi9ceNgIY9lE',

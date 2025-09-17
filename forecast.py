@@ -1,9 +1,9 @@
-from stable_functions import get_all_accounts, get_current_balances, get_all_transactions_for_year, filter_transactions_by_month
+from stable_functions import get_all_accounts, get_current_balances, get_all_transactions_for_year, calculate_daily_balances
 from datetime import datetime
 from config import MONITORING_CONFIG
 
-def forecast():
-    """Анализ отрицательных остатков по месяцам"""
+def forecast(transactions_by_account=None):
+    """Анализ отрицательных остатков по дням"""
     
     # Получаем все счета
     accounts = get_all_accounts()
@@ -16,19 +16,10 @@ def forecast():
     # Текущая дата
     now = datetime.now()
     current_date = now.strftime("%Y-%m-%d")
-    current_year = now.year
-    current_month = now.month
     
-    # Месяцы для прогноза (текущий + следующие N месяцев из конфига)
+    # Количество дней для прогноза (месяцы * 30 дней)
     months_ahead = MONITORING_CONFIG['months_ahead']
-    months = []
-    for i in range(months_ahead):
-        month = current_month + i
-        year = current_year
-        if month > 12:
-            month -= 12
-            year += 1
-        months.append((year, month))
+    days_ahead = months_ahead * 30
     
     print("АНАЛИЗ ОТРИЦАТЕЛЬНЫХ ОСТАТКОВ")
     print("=" * 50)
@@ -43,36 +34,42 @@ def forecast():
         # Текущий остаток
         current_balance = current_balances[account_id]['balance']
         
-        # Получаем все плановые транзакции на год вперед от текущей даты одним запросом
-        year_transactions = get_all_transactions_for_year(account_id, current_date)
+        # Получаем транзакции (либо переданные, либо загружаем)
+        # Приводим account_id к int для соответствия ключам в transactions_by_account
+        account_id_int = int(account_id)
+        if transactions_by_account and account_id_int in transactions_by_account:
+            year_transactions = transactions_by_account[account_id_int]
+        else:
+            # По этому счету не было движений за год - используем пустой список
+            year_transactions = []
         
-        running_balance = current_balance
-        negative_months = []
+        # Рассчитываем ежедневные остатки
+        daily_balances = calculate_daily_balances(
+            current_balance=current_balance,
+            planned_transactions=year_transactions,
+            start_date=current_date,
+            days_ahead=days_ahead
+        )
         
-        for year, month in months:
-            # Фильтруем транзакции за конкретный месяц
-            planned_ops = filter_transactions_by_month(year_transactions, year, month)
-            
-            # Считаем сальдо плановых операций
-            planned_balance = 0
-            for tx in planned_ops:
-                value = tx.get('value', 0)
-                tx_type = tx.get('type', '')
-                if tx_type == 'in':
-                    planned_balance += value
-                elif tx_type == 'out':
-                    planned_balance += value
-            
-            # Обновляем баланс
-            running_balance += planned_balance
-            
-            # Проверяем на отрицательный баланс
-            if running_balance < 0:
-                negative_months.append(f"{month:02d}-{year}")
+        # Ищем отрицательные дни
+        negative_days = []
+        for date_str, balance in daily_balances.items():
+            if balance < 0:
+                # Форматируем дату для вывода
+                date_obj = datetime.strptime(date_str, "%Y-%m-%d 00:00:00")
+                formatted_date = date_obj.strftime("%d-%m-%Y")
+                negative_days.append(f"{formatted_date}")
         
         # Сохраняем только счета с минусами
-        if negative_months:
-            months_str = ", ".join(negative_months)
+        if negative_days:
+            # Группируем по месяцам для компактности
+            months_with_negatives = set()
+            for date_str in negative_days:
+                date_obj = datetime.strptime(date_str, "%d-%m-%Y")
+                month_year = date_obj.strftime("%m-%Y")
+                months_with_negatives.add(month_year)
+            
+            months_str = ", ".join(sorted(months_with_negatives))
             accounts_with_negatives.append(f"{account_name}: минусы в месяцах: {months_str}")
     
     # Выводим результат
