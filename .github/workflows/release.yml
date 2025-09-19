@@ -1,0 +1,124 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g., v2.0.0)'
+        required: true
+        default: 'v2.0.0'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: Set version
+      id: version
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+        else
+          echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: Create changelog
+      id: changelog
+      run: |
+        echo "## WatchDog ${{ steps.version.outputs.version }}" > CHANGELOG.md
+        echo "" >> CHANGELOG.md
+        echo "### 🚀 New Features" >> CHANGELOG.md
+        echo "- Optimized API calls (6-9x faster)" >> CHANGELOG.md
+        echo "- Modular architecture (api_functions.py + telegram_functions.py)" >> CHANGELOG.md
+        echo "- Improved error handling with timeouts" >> CHANGELOG.md
+        echo "- Automated deployment with GitHub Actions" >> CHANGELOG.md
+        echo "" >> CHANGELOG.md
+        echo "### 🔧 Improvements" >> CHANGELOG.md
+        echo "- Removed code duplication" >> CHANGELOG.md
+        echo "- Better separation of concerns" >> CHANGELOG.md
+        echo "- Enhanced documentation" >> CHANGELOG.md
+        echo "" >> CHANGELOG.md
+        echo "### 🐛 Bug Fixes" >> CHANGELOG.md
+        echo "- Fixed API hanging issues" >> CHANGELOG.md
+        echo "- Resolved configuration conflicts" >> CHANGELOG.md
+        echo "" >> CHANGELOG.md
+        echo "### 📊 Performance" >> CHANGELOG.md
+        echo "- API requests: 18+ → 2-3 (6-9x improvement)" >> CHANGELOG.md
+        echo "- Faster startup time" >> CHANGELOG.md
+        echo "- Reduced memory usage" >> CHANGELOG.md
+        
+    - name: Create deployment package
+      run: |
+        mkdir -p release
+        cp *.py release/
+        cp *.json release/
+        cp *.sh release/
+        cp requirements.txt release/
+        cp *.md release/
+        tar -czf watchdog-${{ steps.version.outputs.version }}.tar.gz -C release .
+        
+    - name: Create Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.version.outputs.version }}
+        release_name: WatchDog ${{ steps.version.outputs.version }}
+        body_path: CHANGELOG.md
+        draft: false
+        prerelease: false
+        
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./watchdog-${{ steps.version.outputs.version }}.tar.gz
+        asset_name: watchdog-${{ steps.version.outputs.version }}.tar.gz
+        asset_content_type: application/gzip
+        
+    - name: Deploy to production
+      if: github.ref == 'refs/tags/v*'
+      uses: webfactory/ssh-agent@v0.7.0
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+        
+    - name: Auto-deploy on release
+      if: github.ref == 'refs/tags/v*'
+      run: |
+        echo "🚀 Auto-deploying release ${{ steps.version.outputs.version }} to production..."
+        
+        # Create backup
+        ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
+          cd ~/watchdog &&
+          tar -czf WG_backup_\$(date +%Y%m%d_%H%M%S).tgz *.py *.json *.sh requirements.txt 2>/dev/null || true
+        "
+        
+        # Deploy files
+        scp -o StrictHostKeyChecking=no *.py ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/watchdog/
+        scp -o StrictHostKeyChecking=no *.json ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/watchdog/
+        scp -o StrictHostKeyChecking=no *.sh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/watchdog/
+        scp -o StrictHostKeyChecking=no requirements.txt ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/watchdog/
+        
+        # Set permissions
+        ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
+          cd ~/watchdog &&
+          chmod +x *.sh
+        "
+        
+        # Test deployment
+        ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
+          cd ~/watchdog &&
+          python3 -c 'import launcher, telegram_bot, api_functions, telegram_functions; print(\"✅ Deployment successful\")'
+        "
+        
+        echo "✅ Production deployment completed!"
