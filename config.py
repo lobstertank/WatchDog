@@ -24,11 +24,3 @@ THREATENING_CONFIG = {
     'days_ahead': 356,         # Количество дней для анализа
 }
 
-# Настройки Telegram бота
-TELEGRAM_CONFIG = {
-    'bot_token': '8363091905:AAE8n7P1PwuQrmQRIGYPSLmgi9ceNgIY9lE',
-    'allowed_users': [
-        13553737,  # Ваш ID
-	2095138167, #Лена
-    ]
-}
