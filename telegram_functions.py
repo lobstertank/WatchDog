@@ -101,7 +101,7 @@ def send_balance_analysis_report(analysis_result, send_telegram_func, allowed_us
             
             # Показываем первые 5 дней для краткости
             for i, (date, balance) in enumerate(negative_days[:5]):
-                message += f"   • {date}: {balance:>12,.0f} р.\n"
+                message += f"   • {date}:  {balance:,.0f} р.\n"
             
             if len(negative_days) > 5:
                 message += f"   • ... и еще {len(negative_days) - 5} дней\n"
@@ -121,7 +121,7 @@ def send_balance_analysis_report(analysis_result, send_telegram_func, allowed_us
             
             # Показываем первые 5 дней для краткости
             for i, (date, balance) in enumerate(threatening_days[:5]):
-                message += f"   • {date}: {balance:>12,.0f} р.\n"
+                message += f"   • {date}:  {balance:,.0f} р.\n"
             
             if len(threatening_days) > 5:
                 message += f"   • ... и еще {len(threatening_days) - 5} дней\n"
