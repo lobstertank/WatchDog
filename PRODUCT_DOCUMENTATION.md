@@ -36,7 +36,8 @@
 - **`launcher.py`** (11 строк) - точка входа для основного бота
 - **`launcher_test.py`** (11 строк) - точка входа для тестового бота
 - **`telegram_bot.py`** (70 строк) - Telegram бот и уведомления
-- **`stable_functions.py`** (400+ строк) - API функции для Финолога
+- **`api_functions.py`** (285 строк) - API функции для Финолога и расчеты
+- **`telegram_functions.py`** (95 строк) - функции отправки сообщений в Telegram
 - **`holiday_checker_json.py`** (134 строки) - работа с календарем праздников
 - **`holiday_updater_minimal.py`** (167 строк) - обновление календаря
 
@@ -108,6 +109,21 @@ TEST_BOT_CONFIG = {
 3. **Уведомления** - отправка только при наличии проблем
 4. **Обновление календаря** - автоматическое обновление праздников ежемесячно
 
+## ⚡ Оптимизация производительности
+
+### API запросы
+Система оптимизирована для минимального количества API запросов к Финологу:
+
+- **Было:** 18+ запросов (1 для счетов + 17 для балансов + N для транзакций)
+- **Стало:** 2-3 запроса (1 для счетов с балансами + 1-2 для транзакций)
+- **Ускорение:** в 6-9 раз! 🚀
+
+### Архитектурные улучшения
+- **Разделение модулей:** `api_functions.py` (API) + `telegram_functions.py` (уведомления)
+- **Использование summary:** балансы извлекаются из ответа `/account` endpoint
+- **Таймауты:** предотвращение зависания на API запросах
+- **Удаление дублирования:** убрана неиспользуемая `get_current_balance()`
+
 ## 🚀 Процесс развертывания
 
 ### 1. Подготовка сервера
@@ -123,8 +139,8 @@ sudo timedatectl set-timezone Europe/Moscow
 ### 2. Загрузка файлов
 ```bash
 # Основные модули
-scp launcher.py telegram_bot.py stable_functions.py config.py contacts.py n8n-server:~/watchdog/
-scp forecast.py holiday_checker_json.py holiday_updater_minimal.py n8n-server:~/watchdog/
+scp launcher.py telegram_bot.py api_functions.py telegram_functions.py config.py contacts.py n8n-server:~/watchdog/
+scp holiday_checker_json.py holiday_updater_minimal.py n8n-server:~/watchdog/
 
 # Данные и скрипты
 scp holidays_2025.json holidays_2026.json requirements.txt n8n-server:~/watchdog/
@@ -201,10 +217,10 @@ python3 launcher_test.py
 ### Проверка конфигурации
 ```bash
 # Тест импорта модулей
-python3 -c "import telegram_bot; import stable_functions; print('OK')"
+python3 -c "import telegram_bot; import api_functions; import telegram_functions; print('OK')"
 
 # Тест API Финолога
-python3 -c "from stable_functions import get_all_accounts; print(len(get_all_accounts()))"
+python3 -c "from api_functions import get_all_accounts; print(len(get_all_accounts()))"
 
 # Тест Telegram бота
 python3 -c "from telegram_bot import send_telegram_message; print('Bot OK')"
@@ -225,8 +241,8 @@ scp n8n-server:~/watchdog/WG_backup_*.tgz ./
 ### 2. Загрузка обновлений
 ```bash
 # Загрузка основных файлов
-scp launcher.py telegram_bot.py stable_functions.py config.py contacts.py n8n-server:~/watchdog/
-scp forecast.py holiday_checker_json.py n8n-server:~/watchdog/
+scp launcher.py telegram_bot.py api_functions.py telegram_functions.py config.py contacts.py n8n-server:~/watchdog/
+scp holiday_checker_json.py n8n-server:~/watchdog/
 
 # Обновление скриптов запуска
 scp run_bot.sh n8n-server:~/watchdog/
@@ -306,6 +322,32 @@ ping api.telegram.org
 - Пользователи должны быть добавлены в `allowed_users`
 - Логи содержат только служебную информацию
 - Резервные копии создаются перед обновлениями
+
+## 📚 Описание модулей
+
+### api_functions.py
+**Назначение:** API функции для работы с Финологом и расчеты
+**Основные функции:**
+- `make_request(url, timeout=30)` - базовый API запрос с таймаутом
+- `get_all_accounts()` - получение всех счетов с балансами
+- `get_current_balances(accounts)` - извлечение балансов из данных счетов
+- `get_all_transactions_for_all_accounts(account_ids, start_date)` - получение транзакций для всех счетов
+- `calculate_daily_balances()` - расчет ежедневных остатков
+- `analyze_all_accounts_balances()` - анализ всех счетов на проблемы
+
+### telegram_functions.py
+**Назначение:** Функции для отправки сообщений в Telegram
+**Основные функции:**
+- `send_telegram_message(bot_token, chat_id, text)` - отправка сообщения
+- `send_positive_balance_report()` - уведомление о положительных остатках
+- `send_balance_analysis_report()` - единый отчет об анализе остатков
+
+### telegram_bot.py
+**Назначение:** Основная логика бота и координация работы
+**Основные функции:**
+- `check_and_notify()` - проверка остатков и отправка уведомлений
+- `main()` - точка входа для запуска бота
+- `send_telegram_message_wrapper()` - обертка с поддержкой тестового режима
 
 ## 📞 Поддержка
 
