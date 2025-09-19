@@ -12,10 +12,6 @@ FINOLOG_CONFIG = {
     'base_url': 'https://api.finolog.ru/v1'
 }
 
-# Настройки мониторинга
-MONITORING_CONFIG = {
-    'months_ahead': 12,        # Количество месяцев для прогноза
-}
 
 # Настройки проверки угрожающих балансов
 THREATENING_CONFIG = {
