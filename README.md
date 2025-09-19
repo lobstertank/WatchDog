@@ -108,14 +108,16 @@ TELEGRAM_CONFIG = {
 ## Структура проекта
 
 ```
-├── telegram_bot.py           # Основной Telegram бот
-├── forecast.py              # Анализ отрицательных остатков
+├── launcher.py              # Точка входа основного бота
+├── launcher_test.py         # Точка входа тестового бота
+├── telegram_bot.py          # Основной Telegram бот
 ├── stable_functions.py      # API функции для Финолога
 ├── holiday_checker_json.py  # Проверка рабочих дней
 ├── holiday_updater_minimal.py # Обновление праздников
 ├── config.py                # Конфигурация
+├── contacts.py              # Настройки ботов
 ├── requirements.txt         # Зависимости
-├── run_bot_with_holidays.sh # Скрипт запуска бота
+├── run_bot.sh               # Скрипт запуска бота
 ├── run_holiday_updater.sh   # Скрипт обновления праздников
 ├── holidays_2025.json       # Данные о праздниках 2025
 ├── holidays_2026.json       # Данные о праздниках 2026

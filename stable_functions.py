@@ -34,105 +34,6 @@ def get_current_balance(account_id):
             return account_details['summary'].get('balance', 0)
     return 0
 
-def get_planned_transactions_for_month(account_id, year, month):
-    """
-    Получить все плановые транзакции за указанный месяц.
-    Учитывает только неразбитые операции и суммирующие операции (родительские).
-    Исключает части разбитых операций.
-    
-    Args:
-        account_id: ID счета
-        year: год (например, 2025)
-        month: месяц (1-12)
-    
-    Returns:
-        list: список плановых транзакций за месяц
-    """
-    # Определяем диапазон дат для месяца
-    start_date = f"{year}-{month:02d}-01"
-    if month == 12:
-        end_date = f"{year+1}-01-01"
-    else:
-        end_date = f"{year}-{month+1:02d}-01"
-    
-    # Добавляем параметры для получения плановых операций и суммирующих операций
-    url = f"{FINOLOG_CONFIG['base_url']}/biz/{FINOLOG_CONFIG['biz_id']}/transaction?account_ids={account_id}&date={start_date}%2C{end_date}&status=planned&with_splitted=false&without_closed_accounts=false"
-    
-    all_transactions = make_request(url)
-    
-    # Фильтруем транзакции по типу операции на клиентской стороне
-    # (статус 'planned' уже отфильтрован на сервере)
-    if not all_transactions:
-        return []
-    
-    filtered_transactions = []
-    for tx in all_transactions:
-        is_splitted = tx.get('is_splitted', False)
-        split_id = tx.get('split_id')
-        
-        # Включаем только:
-        # 1. Неразбитые операции (split_id = null, is_splitted = false)
-        # 2. Суммирующие операции (is_splitted = true)
-        # Исключаем части разбитых операций (split_id ≠ null, is_splitted = false)
-        if (split_id is None and not is_splitted) or is_splitted:
-            filtered_transactions.append(tx)
-    
-    return filtered_transactions
-
-def get_all_transactions_for_year(account_id, start_date):
-    """Получить все транзакции на год вперед от заданной даты (передается как параметр) с пагинацией"""
-    # Диапазон дат на год вперед от указанной даты
-    # start_date может быть в формате "2025-09-14" или "2025"
-    if len(str(start_date)) == 4:  # Если передан только год
-        start_date = f"{start_date}-01-01"
-        end_date = f"{int(start_date[:4])+1}-01-01"
-    else:  # Если передана точная дата
-        from datetime import datetime, timedelta
-        start_dt = datetime.strptime(start_date, "%Y-%m-%d")
-        start_dt_in_past= start_dt - timedelta(days=365)
-        start_date_in_past = start_dt_in_past.strftime("%Y-%m-%d")
-        end_dt = start_dt + timedelta(days=365)
-        end_date = end_dt.strftime("%Y-%m-%d")
-    
-    all_transactions = []
-    page = 1
-    pagesize = 200  # Максимальный размер страницы
-    
-    while True:
-        # Запрос транзакций с пагинацией (используем правильный формат как в get_planned_transactions_for_month)
-        url = f"{FINOLOG_CONFIG['base_url']}/biz/{FINOLOG_CONFIG['biz_id']}/transaction?account_ids={account_id}&date={start_date_in_past}%2C{end_date}&status=planned&with_splitted=false&without_closed_accounts=false&page={page}&pagesize={pagesize}"
-        
-        page_transactions = make_request(url)
-        
-        if not page_transactions:
-            break
-            
-        all_transactions.extend(page_transactions)
-        
-        # Если получили меньше транзакций чем pagesize, значит это последняя страница
-        if len(page_transactions) < pagesize:
-            break
-            
-        page += 1
-    
-    if not all_transactions:
-        return []
-    
-    # Фильтруем транзакции по типу операции (статус 'planned' уже отфильтрован на сервере)
-    filtered_transactions = []
-    for tx in all_transactions:
-        is_splitted = tx.get('is_splitted', False)
-        split_id = tx.get('split_id')
-        
-        # Включаем только:
-        # 1. Неразбитые операции (split_id = null, is_splitted = false)
-        # 2. Суммирующие операции (is_splitted = true)
-        # Исключаем части разбитых операций (split_id ≠ null, is_splitted = false)
-        if (split_id is None and not is_splitted) or is_splitted:
-            filtered_transactions.append(tx)
-    
-    return filtered_transactions
-
 def get_all_transactions_for_all_accounts(account_ids, start_date):
     """Получить все транзакции для нескольких счетов одним запросом"""
     # Диапазон дат на год вперед от указанной даты
@@ -197,45 +98,6 @@ def get_all_transactions_for_all_accounts(account_ids, start_date):
     
     return transactions_by_account
 
-def filter_transactions_by_month(transactions, year, month):
-    """Выделить транзакции за конкретный месяц из списка транзакций за год"""
-    from datetime import datetime
-    
-    filtered_transactions = []
-    
-    # Вычисляем текущую дату на ходу
-    current_date = datetime.now().strftime("%Y-%m-%d")
-    target_month = f"{year}-{month:02d}"
-    current_month = current_date[:7]  # YYYY-MM
-    
-    for tx in transactions:
-        tx_date = tx.get('date', '')
-        is_splitted = tx.get('is_splitted', False)
-        split_id = tx.get('split_id')
-        
-        # Логика фильтрации:
-        # 1. Если целевой месяц в прошлом или текущем - включаем все плановые операции до этого месяца
-        # 2. Если целевой месяц в будущем - включаем только операции за этот месяц
-        if target_month <= current_month:
-            # Для прошлых/текущих месяцев - включаем все операции до этого месяца включительно
-            if tx_date[:7] <= target_month:
-                pass  # Включаем
-            else:
-                continue  # Пропускаем
-        else:
-            # Для будущих месяцев - только операции за конкретный месяц
-            if not tx_date.startswith(f"{year}-{month:02d}-"):
-                continue
-            
-        # Включаем только:
-        # 1. Неразбитые операции (split_id = null, is_splitted = false)
-        # 2. Суммирующие операции (is_splitted = true)
-        # Исключаем части разбитых операций (split_id ≠ null, is_splitted = false)
-        if (split_id is None and not is_splitted) or is_splitted:
-            filtered_transactions.append(tx)
-    
-    return filtered_transactions
-
 def get_all_accounts():
     """Получить список всех счетов"""
     url = f"{FINOLOG_CONFIG['base_url']}/biz/{FINOLOG_CONFIG['biz_id']}/account"
@@ -255,54 +117,6 @@ def get_current_balances(accounts):
         }
     
     return balances
-
-def send_negative_balance_report(transactions_by_account, send_telegram_message, allowed_users, forecast_func):
-    """Отправляет отчет об отрицательных остатках в табличном формате"""
-    import io
-    import sys
-    
-    # Перехватываем вывод функции в строку
-    old_stdout = sys.stdout
-    sys.stdout = buffer = io.StringIO()
-    
-    try:
-        # Запускаем анализ (передаем транзакции)
-        forecast_func(transactions_by_account)
-        report = buffer.getvalue()
-    finally:
-        sys.stdout = old_stdout
-    
-    # Форматируем отчет в табличном виде
-    if "Минусов нет" in report:
-        message = "✅ <b>Анализ остатков</b>\n\n🎉 <b>Минусов нет!</b>\n\nВсе счета в порядке."
-    else:
-        # Парсим отчет и форматируем в таблицу
-        lines = report.strip().split('\n')
-        message = "⚠️ <b>Анализ остатков</b>\n\n"
-        message += "🔴 <b>Обнаружены отрицательные остатки:</b>\n\n"
-        
-        for line in lines:
-            if ":" in line and "минусы в месяцах" in line:
-                # Форматируем строку: "Счет: минусы в месяцах: 09-2025, 10-2025"
-                parts = line.split(": минусы в месяцах: ")
-                if len(parts) == 2:
-                    account_name = parts[0].strip()
-                    months = parts[1].strip()
-                    
-                    # Создаем табличную строку
-                    message += f"📊 <b>{account_name}</b>\n"
-                    message += f"📅 Месяцы: <code>{months}</code>\n\n"
-    
-    # Отправляем отчет всем разрешенным пользователям
-    for user_id in allowed_users:
-        try:
-            success = send_telegram_message(user_id, message)
-            if success:
-                print(f"Отправлено пользователю {user_id}")
-            else:
-                print(f"Ошибка отправки пользователю {user_id}")
-        except Exception as e:
-            print(f"Ошибка отправки пользователю {user_id}: {e}")
 
 def calculate_daily_balances(current_balance, planned_transactions, start_date, days_ahead=365):
     """
@@ -373,54 +187,6 @@ def send_telegram_message(bot_token, chat_id, text):
     except Exception as e:
         print(f"Ошибка отправки сообщения: {e}")
         return False
-
-def check_daily_balances_for_threats(account_id, planned_transactions):
-    """Проверяет ежедневные остатки указанного счета на угрожающие балансы"""
-    
-    print(f"🔍 Проверяем ежедневные остатки счета ID: {account_id}...")
-    
-    try:
-        # Получаем информацию о счете
-        accounts = get_all_accounts()
-        if not accounts:
-            print("Ошибка: не удалось получить список счетов")
-            return None, None, None
-        
-        account_name = None
-        for account in accounts:
-            if account.get('id') == account_id:
-                account_name = account.get('name', 'Без названия')
-                break
-        
-        if not account_name:
-            print(f"Ошибка: счет с ID {account_id} не найден")
-            return None, None, None
-        
-        # Получаем текущий остаток
-        current_balance = get_current_balance(account_id)
-        start_date = datetime.now().strftime("%Y-%m-%d")
-        
-        # Рассчитываем ежедневные остатки на 356 дней вперед
-        daily_balances = calculate_daily_balances(
-            current_balance=current_balance,
-            planned_transactions=planned_transactions,
-            start_date=start_date,
-            days_ahead=356
-        )
-        
-        # Проверяем на угрожающие балансы (меньше 100,000 руб.)
-        threatening_dates = [(date, balance) for date, balance in daily_balances.items() if balance < 100000]
-        
-        if threatening_dates:
-            print(f"⚠️ Обнаружены угрожающие балансы в {account_name}: {len(threatening_dates)} дней")
-            return threatening_dates, account_name, current_balance
-        else:
-            print(f"✅ Угрожающих балансов в {account_name} не обнаружено (проверено {len(daily_balances)} дней)")
-            return None, account_name, current_balance
-            
-    except Exception as e:
-        print(f"Ошибка при проверке ежедневных остатков: {e}")
-        return None, None, None
 
 def send_positive_balance_report(send_telegram_message_func, allowed_users):
     """Отправляет уведомление о том, что минусов нет (только в 9 утра)"""
@@ -625,6 +391,3 @@ def send_balance_analysis_report(analysis_result, send_telegram_func, allowed_us
                 print(f"Ошибка отправки уведомления об анализе остатков пользователю {user_id}")
         except Exception as e:
             print(f"Ошибка отправки уведомления об анализе остатков пользователю {user_id}: {e}")
-
-
-
