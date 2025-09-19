@@ -16,15 +16,11 @@ from api_functions import (
 )
 from telegram_functions import (
     send_telegram_message,
+    send_telegram_message_wrapper,
     send_positive_balance_report,
     send_balance_analysis_report
 )
 
-def send_telegram_message_wrapper(bot_token, chat_id, text, is_test=False):
-    """Обертка для отправки сообщения в Telegram"""
-    if is_test:
-        text = "🧪 ТЕСТ: " + text
-    return send_telegram_message(bot_token, chat_id, text)
 
 def check_and_notify(bot_token, allowed_users, is_test=False):
     """Проверяет остатки и отправляет уведомления только при наличии проблем и в рабочие дни"""

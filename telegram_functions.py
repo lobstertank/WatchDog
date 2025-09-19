@@ -29,6 +29,12 @@ def send_telegram_message(bot_token, chat_id, text):
         print(f"Ошибка отправки сообщения: {e}")
         return False
 
+def send_telegram_message_wrapper(bot_token, chat_id, text, is_test=False):
+    """Обертка для отправки сообщения в Telegram с поддержкой тестового режима"""
+    if is_test:
+        text = "🧪 ТЕСТ: " + text
+    return send_telegram_message(bot_token, chat_id, text)
+
 def send_positive_balance_report(send_telegram_message_func, allowed_users):
     """Отправляет уведомление о том, что минусов нет (только в 9 утра)"""
     
