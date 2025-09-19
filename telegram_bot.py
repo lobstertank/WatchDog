@@ -7,14 +7,16 @@
 import datetime
 import os
 from holiday_checker_json import is_working_day, get_holiday_info
-from stable_functions import (
+from api_functions import (
     get_all_accounts,
-    get_current_balance, 
     get_all_transactions_for_all_accounts, 
     calculate_daily_balances,
+    get_current_balances,
+    analyze_all_accounts_balances
+)
+from telegram_functions import (
     send_telegram_message,
     send_positive_balance_report,
-    analyze_all_accounts_balances,
     send_balance_analysis_report
 )
 
@@ -49,7 +51,6 @@ def check_and_notify(bot_token, allowed_users, is_test=False):
     transactions_by_account = get_all_transactions_for_all_accounts(account_ids, start_date)
     
     # Получаем текущие остатки
-    from stable_functions import get_current_balances
     current_balances = get_current_balances(accounts)
     
     # Единый анализ всех счетов
