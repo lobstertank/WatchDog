@@ -1,0 +1,50 @@
+name: Server Test (launcher_test)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  server-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+    - name: Run launcher_test.py on server (timeout 15s)
+      run: |
+        ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
+          set -euo pipefail
+          cd ~/watchdog &&
+          mkdir -p logs &&
+          TS=\"$(date '+%Y-%m-%d %H:%M:%S')\" &&
+          echo \"[${TS}] === Server-test start ===\" | tee -a logs/launcher_test.log bot.log || true &&
+          echo '=== Python version ===' | tee -a logs/launcher_test.log bot.log && python3 -V 2>&1 | tee -a logs/launcher_test.log bot.log || true &&
+          echo '=== PWD & LS ===' | tee -a logs/launcher_test.log bot.log && (pwd && ls -la) 2>&1 | tee -a logs/launcher_test.log bot.log &&
+          echo '=== Running launcher_test.py (15s timeout) ===' | tee -a logs/launcher_test.log bot.log &&
+          ( timeout 15s python3 launcher_test.py 2>&1 || echo 'Test completed (timeout or non-zero exit)' ) | tee -a logs/launcher_test.log bot.log &&
+          TS_END=\"$(date '+%Y-%m-%d %H:%M:%S')\" && echo \"[${TS_END}] === Server-test end ===\" | tee -a logs/launcher_test.log bot.log || true
+        "
+
+    - name: Show recent logs if present
+      run: |
+        ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
+          cd ~/watchdog &&
+          echo '=== tail bot.log ===' && tail -n 100 bot.log 2>/dev/null || echo 'bot.log not found' &&
+          echo '=== tail logs/cron.log ===' && tail -n 50 logs/cron.log 2>/dev/null || true &&
+          echo '=== tail logs/holiday_updater.log ===' && tail -n 50 logs/holiday_updater.log 2>/dev/null || true &&
+          echo '=== tail logs/launcher_test.log ===' && tail -n 100 logs/launcher_test.log 2>/dev/null || echo 'launcher_test.log not found'
+        "
+
+    - name: Summary
+      run: |
+        echo "🧪 Server test for launcher_test.py completed. Check steps above for outputs."
+
+
