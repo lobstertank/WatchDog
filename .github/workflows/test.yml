@@ -26,6 +26,14 @@ jobs:
         pip install -r requirements.txt
         
     - name: Test imports
+      env:
+        FINOLOG_API_KEY: test_api_key
+        FINOLOG_BIZ_ID: test_biz_id
+        THREATENING_ACCOUNT_IDS: "123,456"
+        MAIN_BOT_TOKEN: test_main_token
+        MAIN_BOT_ALLOWED_USERS: "123456789"
+        TEST_BOT_TOKEN: test_test_token
+        TEST_BOT_ALLOWED_USERS: "123456789"
       run: |
         python -c "
         try:
@@ -41,6 +49,14 @@ jobs:
         "
         
     - name: Test configuration
+      env:
+        FINOLOG_API_KEY: test_api_key
+        FINOLOG_BIZ_ID: test_biz_id
+        THREATENING_ACCOUNT_IDS: "123,456"
+        MAIN_BOT_TOKEN: test_main_token
+        MAIN_BOT_ALLOWED_USERS: "123456789"
+        TEST_BOT_TOKEN: test_test_token
+        TEST_BOT_ALLOWED_USERS: "123456789"
       run: |
         python -c "
         from config import FINOLOG_CONFIG, THREATENING_CONFIG
