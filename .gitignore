@@ -57,3 +57,6 @@ tmp_*
 
 # Finolog reports subfolder (research project)
 finolog_reports/
+# Environment configuration
+.env
+.env.local

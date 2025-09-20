@@ -30,16 +30,15 @@ def make_request(url, timeout=30):
 def get_all_transactions_for_all_accounts(account_ids, start_date):
     """Получить все транзакции для нескольких счетов одним запросом"""
     # Диапазон дат на год вперед от указанной даты
-    if len(str(start_date)) == 4:  # Если передан только год
-        start_date = f"{start_date}-01-01"
-        end_date = f"{int(start_date[:4])+1}-01-01"
-    else:  # Если передана точная дата
-        from datetime import datetime, timedelta
-        start_dt = datetime.strptime(start_date, "%Y-%m-%d")
-        start_dt_in_past = start_dt - timedelta(days=365)
-        start_date_in_past = start_dt_in_past.strftime("%Y-%m-%d")
-        end_dt = start_dt + timedelta(days=365)
-        end_date = end_dt.strftime("%Y-%m-%d")
+    try:
+        start_dt = datetime.strptime(str(start_date), "%Y-%m-%d")
+    except ValueError as exc:
+        raise ValueError("start_date must be in 'YYYY-MM-DD' format") from exc
+
+    start_dt_in_past = start_dt - timedelta(days=365)
+    start_date_in_past = start_dt_in_past.strftime("%Y-%m-%d")
+    end_dt = start_dt + timedelta(days=365)
+    end_date = end_dt.strftime("%Y-%m-%d")
     
     # Объединяем ID счетов через запятую
     account_ids_str = ','.join(map(str, account_ids))
