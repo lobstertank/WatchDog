@@ -18,6 +18,25 @@ jobs:
         chmod 600 ~/.ssh/id_rsa
         ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
+    - name: Render environment file
+      run: |
+        cat <<'EOF' > .env
+        FINOLOG_API_KEY=${{ secrets.FINOLOG_API_KEY }}
+        FINOLOG_BIZ_ID=${{ secrets.FINOLOG_BIZ_ID }}
+        FINOLOG_BASE_URL=https://api.finolog.ru/v1
+        THREATENING_ACCOUNT_IDS=${{ secrets.THREATENING_ACCOUNT_IDS }}
+        THREATENING_THRESHOLD=100000
+        THREATENING_DAYS_AHEAD=356
+        MAIN_BOT_TOKEN=${{ secrets.MAIN_BOT_TOKEN }}
+        MAIN_BOT_ALLOWED_USERS=${{ secrets.MAIN_BOT_ALLOWED_USERS }}
+        TEST_BOT_TOKEN=${{ secrets.TEST_BOT_TOKEN }}
+        TEST_BOT_ALLOWED_USERS=${{ secrets.TEST_BOT_ALLOWED_USERS }}
+        EOF
+
+    - name: Deploy environment file
+      run: |
+        scp -o StrictHostKeyChecking=no .env ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/watchdog/.env
+
     - name: Run launcher_test.py on server (timeout 15s)
       run: |
         ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
