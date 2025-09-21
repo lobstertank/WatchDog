@@ -1,12 +1,10 @@
-name: "Deploy to Production"
+name: "Deploy & Run Test Bot"
 
 on:
   workflow_dispatch:  # Manual trigger
-  release:
-    types: [published]
 
 jobs:
-  deploy:
+  deploy-test:
     runs-on: ubuntu-latest
     
     steps:
@@ -34,12 +32,18 @@ jobs:
         
     - name: Deploy to server
       run: |
-        # Stop the existing service
-        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ~/watchdog && pkill -f launcher.py || true"
-        
-        # Deploy files
+        mkdir -p logs
         scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa .env ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/watchdog/
         scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa *.py ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/watchdog/
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ~/watchdog && mkdir -p logs && python3 launcher_test.py > logs/launcher_test.log 2>&1"
         
-        # Restart the service
-        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ~/watchdog && nohup python3 launcher.py > logs/launcher.log 2>&1 &"
+    - name: Get logs
+      run: |
+        scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/watchdog/logs/launcher_test.log logs/
+        scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/watchdog/logs/bot.log logs/ || echo "No bot.log file found"
+        
+    - name: Upload logs
+      uses: actions/upload-artifact@v3
+      with:
+        name: logs
+        path: logs/

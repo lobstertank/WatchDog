@@ -1,157 +1,54 @@
-# Telegram бот для мониторинга кассовых разрывов в Финологе
+# WatchDog - Finolog Monitoring Bot
 
-Python Telegram бот для автоматического мониторинга кассовых разрывов в системе Финолог. Проверяет балансы на всех счетах на год вперед и уведомляет о возможных разрывах через Telegram.
+## Overview
+WatchDog is a monitoring system that tracks financial accounts in Finolog and sends alerts via Telegram when certain conditions are met.
 
-## 🚀 Автоматическое развертывание
+## Features
+- Monitor account balances in Finolog
+- Send notifications about threatening balances
+- Provide balance reports on demand
+- Support for both production and test environments
 
-Проект настроен с GitHub Actions для автоматического тестирования и развертывания:
-- **test.yml** - автоматическое тестирование при push
-- **deploy.yml** - автоматическое развертывание на продакшн  
-- **release.yml** - управление релизами
+## Project Structure
+- `launcher.py` - Main entry point for the production bot
+- `launcher_test.py` - Entry point for the test bot
+- `api_functions.py` - Functions for interacting with the Finolog API
+- `telegram_functions.py` - Functions for sending Telegram messages
+- `config.py` - Configuration settings
+- `contacts.py` - Bot-specific configurations
+- `.github/workflows/` - GitHub Actions workflow files
 
-### Статус развертывания
-Последнее обновление: $(date)
+## Setup
+1. Clone the repository
+2. Create a `.env` file with required environment variables
+3. Install dependencies: `pip install requests python-telegram-bot`
 
-## Возможности
+## Environment Variables
+- `FINOLOG_API_KEY` - API key for Finolog
+- `FINOLOG_BIZ_ID` - Business ID for Finolog
+- `THREATENING_ACCOUNT_IDS` - Comma-separated list of account IDs to monitor
+- `THREATENING_THRESHOLD` - Balance threshold for alerts
+- `THREATENING_DAYS_AHEAD` - Days to look ahead for forecasting
+- `MAIN_BOT_TOKEN` - Telegram token for the main bot
+- `MAIN_BOT_ALLOWED_USERS` - Comma-separated list of allowed Telegram user IDs for main bot
+- `TEST_BOT_TOKEN` - Telegram token for the test bot
+- `TEST_BOT_ALLOWED_USERS` - Comma-separated list of allowed Telegram user IDs for test bot
 
-- 🤖 Telegram бот с уведомлениями
-- 🔍 Автоматическая проверка всех счетов в Финологе
-- 📊 Прогноз балансов на 12 месяцев вперед
-- ⚠️ Обнаружение кассовых разрывов
-- 🌅 Утренние уведомления "все хорошо" в 9:00
-- 📅 Учет российских праздников и рабочих дней
-- ⚙️ Гибкая конфигурация
+## Usage
+- Run the production bot: `python launcher.py`
+- Run the test bot: `python launcher_test.py`
 
-## Установка
+## Automated Deployment
+This project uses GitHub Actions for automated testing and deployment:
+- `test.yml` - Runs basic tests
+- `server-test.yml` - Runs the test launcher on the production server
+- `deploy-test.yml` - Deploys and runs the test bot
+- `deploy.yml` - Deploys to production
+- `release.yml` - Creates a new release and triggers deployment
 
-1. Установите зависимости:
-```bash
-pip install -r requirements.txt
-```
+For more information, see [GITHUB_ACTIONS_SETUP.md](GITHUB_ACTIONS_SETUP.md).
 
-2. Скопируйте `.env.example` в `.env` и заполните секреты:
-   - `FINOLOG_API_KEY`, `FINOLOG_BIZ_ID`, `FINOLOG_BASE_URL`
-   - `MAIN_BOT_TOKEN` и `TEST_BOT_TOKEN`, а также списки `*_ALLOWED_USERS` (ID через запятую)
-   - При необходимости скорректируйте значения `THREATENING_*`
-
-## Использование
-
-### Базовый запуск
-```bash
-python telegram_bot.py
-```
-
-### Автоматический запуск через cron
-```bash
-# Каждый час с 9:00 до 18:00 в рабочие дни
-0 9-18 * * 1-5 /home/sheinin/watchdog/run_bot_with_holidays.sh
-
-# Обновление праздников (первый понедельник месяца в 14:00)
-0 14 1-7 * 1 /home/sheinin/watchdog/run_holiday_updater.sh
-```
-
-### Логика работы бота
-
-1. **Проверка рабочих дней**: Бот работает только в рабочие дни (учитывает российские праздники)
-2. **Уведомления о минусах**: Отправляются сразу при обнаружении отрицательных остатков
-3. **Утренние уведомления**: В 9:00 утра отправляется сообщение "все хорошо", если минусов нет
-4. **Частота проверок**: Каждый час с 9:00 до 18:00 в рабочие дни
-
-## Конфигурация
-
-### Основные параметры в `config.py`
-
-```python
-# API настройки Финолога
-FINOLOG_CONFIG = {
-    'api_key': 'ваш_api_ключ',
-    'biz_id': 'ваш_biz_id',
-    'base_url': 'https://api.finolog.ru/v1'
-}
-
-# Настройки мониторинга
-MONITORING_CONFIG = {
-    'months_ahead': 12,  # Количество месяцев для прогноза
-}
-
-# Настройки Telegram бота
-TELEGRAM_CONFIG = {
-    'bot_token': 'ваш_токен_бота',
-    'allowed_users': [ваш_telegram_id]
-}
-```
-
-### Telegram настройки
-
-1. Создайте бота через @BotFather в Telegram
-2. Получите токен бота
-3. Узнайте свой User ID (используйте @userinfobot)
-4. Добавьте ID в список `allowed_users`
-
-## Получение API ключа
-
-1. Войдите в ваш аккаунт Финолога
-2. Перейдите в раздел "Настройки" → "API"
-3. Создайте новый API ключ
-4. Скопируйте ключ и Biz ID
-
-## Логирование
-
-Скрипт ведет подробные логи в файле `finolog_monitor.log`. Уровень логирования можно настроить в `config.py`.
-
-## Автоматизация
-
-Для автоматического запуска можно использовать:
-
-### Windows (Планировщик задач)
-1. Откройте Планировщик задач
-2. Создайте новую задачу
-3. Укажите путь к Python и скрипту
-4. Настройте расписание
-
-### Linux/macOS (cron)
-```bash
-# Проверка каждый день в 9:00
-0 9 * * * /usr/bin/python3 /path/to/finolog_monitor.py
-```
-
-## Структура проекта
-
-```
-├── launcher.py              # Точка входа основного бота
-├── launcher_test.py         # Точка входа тестового бота
-├── telegram_bot.py          # Основной Telegram бот
-├── stable_functions.py      # API функции для Финолога
-├── holiday_checker_json.py  # Проверка рабочих дней
-├── holiday_updater_minimal.py # Обновление праздников
-├── config.py                # Конфигурация
-├── contacts.py              # Настройки ботов
-├── requirements.txt         # Зависимости
-├── run_bot.sh               # Скрипт запуска бота
-├── run_holiday_updater.sh   # Скрипт обновления праздников
-├── holidays_2025.json       # Данные о праздниках 2025
-├── holidays_2026.json       # Данные о праздниках 2026
-└── README.md               # Документация
-```
-
-## Безопасность
-
-- Никогда не коммитьте API ключи в репозиторий
-- Используйте переменные окружения для продакшена
-- Регулярно обновляйте API ключи
-
-## Поддержка
-
-При возникновении проблем проверьте:
-1. Правильность API ключа и Biz ID
-2. Доступность интернета
-3. Логи в файле `finolog_monitor.log`
-
-
-
-
-
-
-
-
-
+## Documentation
+- [PRODUCT_DOCUMENTATION.md](PRODUCT_DOCUMENTATION.md) - Detailed product documentation
+- [DEPLOYMENT_PROCESS.md](DEPLOYMENT_PROCESS.md) - Deployment process
+- [GITHUB_ACTIONS_SETUP.md](GITHUB_ACTIONS_SETUP.md) - GitHub Actions setup guide

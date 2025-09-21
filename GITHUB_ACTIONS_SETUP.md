@@ -1,164 +1,47 @@
-# GitHub Actions для WatchDog
+# GitHub Actions Setup Guide
 
-## 🎯 Обзор
+## Overview
+This project uses GitHub Actions for automated testing, deployment, and release management. This guide explains how to set up the required secrets and how to use the workflows.
 
-GitHub Actions автоматизирует процесс тестирования, развертывания и создания релизов для WatchDog.
+## Required Secrets
+Add the following secrets to your GitHub repository (Settings > Secrets and variables > Actions > New repository secret):
 
-## 📋 Workflows
+1. `SSH_PRIVATE_KEY` - Private SSH key for connecting to the server
+2. `SSH_USER` - SSH username (e.g., sheinin)
+3. `SSH_HOST` - Server hostname (e.g., n8n.bpmdoc.com)
+4. `FINOLOG_API_KEY` - API key for Finolog
+5. `FINOLOG_BIZ_ID` - Business ID for Finolog
+6. `THREATENING_ACCOUNT_IDS` - Comma-separated list of account IDs to monitor
+7. `THREATENING_THRESHOLD` - Balance threshold for alerts (default: 100000)
+8. `THREATENING_DAYS_AHEAD` - Days to look ahead for forecasting (default: 356)
+9. `MAIN_BOT_TOKEN` - Telegram token for the main bot
+10. `MAIN_BOT_ALLOWED_USERS` - Comma-separated list of allowed Telegram user IDs for main bot
+11. `TEST_BOT_TOKEN` - Telegram token for the test bot
+12. `TEST_BOT_ALLOWED_USERS` - Comma-separated list of allowed Telegram user IDs for test bot
 
-### 1. **test.yml** - Тестирование
-- **Триггер:** Push в master/develop, Pull Request, ручной запуск
-- **Функции:**
-  - Проверка импортов модулей
-  - Валидация конфигурации
-  - Проверка структуры файлов
-  - Тестирование документации
+## Available Workflows
 
-### 2. **deploy.yml** - Развертывание
-- **Триггер:** Push в master (только Python файлы), ручной запуск
-- **Функции:**
-  - Создание резервной копии на сервере
-  - Загрузка файлов на продакшн
-  - Установка прав доступа
-  - Тестирование развертывания
-  - Проверка работоспособности
+### 1. Run Tests (`test.yml`)
+Runs basic import and configuration tests.
+- Trigger: Push to main, pull requests to main, manual
+- Usage: Automatically runs on code changes or can be triggered manually from Actions tab
 
-### 3. **release.yml** - Создание релизов
-- **Триггер:** Push тега v*, ручной запуск
-- **Функции:**
-  - Создание changelog
-  - Упаковка релиза
-  - Создание GitHub Release
-  - Автоматический деплой на продакшн
+### 2. Run Test on Server (`server-test.yml`)
+Runs the test launcher on the production server.
+- Trigger: Manual only
+- Usage: Trigger from Actions tab to test the bot on the server
 
-## 🔧 Настройка Secrets
+### 3. Deploy & Run Test Bot (`deploy-test.yml`)
+Deploys the code and runs the test bot on the server.
+- Trigger: Manual only
+- Usage: Trigger from Actions tab to deploy and test
 
-### Необходимые секреты в GitHub:
+### 4. Deploy to Production (`deploy.yml`)
+Deploys the code to production.
+- Trigger: Manual or on release publish
+- Usage: Trigger from Actions tab or automatically on release
 
-1. **SSH_PRIVATE_KEY** - Приватный SSH ключ для доступа к серверу
-2. **SSH_USER** - Имя пользователя на сервере (например: `sheinin`)
-3. **SSH_HOST** - Хост сервера (например: `n8n.bpmdoc.com`)
-
-### Как добавить секреты:
-
-1. Перейдите в Settings → Secrets and variables → Actions
-2. Нажмите "New repository secret"
-3. Добавьте каждый секрет:
-
-```
-SSH_PRIVATE_KEY: -----BEGIN OPENSSH PRIVATE KEY-----
-                 [ваш приватный ключ]
-                 -----END OPENSSH PRIVATE KEY-----
-
-SSH_USER: sheinin
-
-SSH_HOST: n8n.bpmdoc.com
-```
-
-## 🚀 Использование
-
-### Автоматическое развертывание:
-```bash
-# Любой push в master с изменениями Python файлов
-git add .
-git commit -m "feat: new feature"
-git push origin master
-# → Автоматически запустится deploy.yml
-```
-
-### Ручное развертывание:
-1. Перейдите в Actions → Deploy WatchDog to Production
-2. Нажмите "Run workflow"
-3. Выберите ветку master
-4. Нажмите "Run workflow"
-
-### Создание релиза:
-```bash
-# Создание тега
-git tag v2.0.0
-git push origin v2.0.0
-# → Автоматически создастся релиз и развернется на продакшн
-```
-
-### Ручное создание релиза:
-1. Перейдите в Actions → Create Release
-2. Нажмите "Run workflow"
-3. Введите версию (например: v2.0.0)
-4. Нажмите "Run workflow"
-
-## 📊 Мониторинг
-
-### Просмотр результатов:
-- **Actions** → Выберите workflow → Просмотр логов
-- **Releases** → Просмотр созданных релизов
-- **Server logs** → Проверка логов на сервере
-
-### Логи на сервере:
-```bash
-# Логи основного бота
-ssh n8n-server "tail -f ~/watchdog/logs/cron.log"
-
-# Логи обновления праздников
-ssh n8n-server "tail -f ~/watchdog/logs/holiday_updater.log"
-```
-
-## 🔒 Безопасность
-
-### SSH ключи:
-- Используйте отдельный SSH ключ для GitHub Actions
-- Ограничьте права ключа только на необходимые операции
-- Регулярно ротируйте ключи
-
-### Секреты:
-- Никогда не коммитьте секреты в код
-- Используйте только GitHub Secrets
-- Ограничьте доступ к секретам
-
-## 🛠️ Troubleshooting
-
-### Частые проблемы:
-
-1. **SSH connection failed**
-   - Проверьте SSH_PRIVATE_KEY
-   - Убедитесь, что ключ добавлен на сервер
-   - Проверьте SSH_USER и SSH_HOST
-
-2. **Import errors**
-   - Проверьте, что все файлы загружены
-   - Убедитесь в правильности путей
-   - Проверьте зависимости в requirements.txt
-
-3. **Permission denied**
-   - Проверьте права на файлы на сервере
-   - Убедитесь, что скрипты имеют права на выполнение
-
-### Отладка:
-```bash
-# Проверка SSH соединения
-ssh -i ~/.ssh/id_rsa sheinin@n8n.bpmdoc.com "echo 'SSH OK'"
-
-# Проверка файлов на сервере
-ssh sheinin@n8n.bpmdoc.com "cd ~/watchdog && ls -la *.py"
-
-# Тест импортов
-ssh sheinin@n8n.bpmdoc.com "cd ~/watchdog && python3 -c 'import launcher'"
-```
-
-## 📈 Преимущества
-
-- ✅ **Автоматизация** - нет ручных действий
-- ✅ **Надежность** - автоматические тесты и проверки
-- ✅ **Откат** - автоматические резервные копии
-- ✅ **Мониторинг** - подробные логи и уведомления
-- ✅ **Безопасность** - использование секретов
-- ✅ **Версионирование** - автоматические релизы
-
-## 🎯 Workflow процесса
-
-```
-Разработка → Push → Тесты → Деплой → Мониторинг
-     ↓           ↓        ↓        ↓         ↓
-   Локально → GitHub → Actions → Server → Logs
-```
-
-Теперь процесс развертывания полностью автоматизирован! 🚀
+### 5. Create Release (`release.yml`)
+Creates a new release and triggers deployment.
+- Trigger: Manual only
+- Usage: Trigger from Actions tab, provide version number and description
