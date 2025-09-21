@@ -60,17 +60,3 @@ finolog_reports/
 # Environment configuration
 .env
 .env.local
-
-# Node.js
-node_modules/
-package.json
-package-lock.json
-
-# Cursor editor
-.cursor/
-
-# Backup files
-*.tgz
-*.tar.gz
-*.zip
-*.bak
