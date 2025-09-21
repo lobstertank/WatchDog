@@ -10,6 +10,8 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        ref: feature/ignore-weekend-check  # Используем ветку с нашими изменениями
       
     - name: Set up SSH key
       run: |
@@ -30,9 +32,10 @@ jobs:
         echo "TEST_BOT_TOKEN=${{ secrets.TEST_BOT_TOKEN }}" >> .env
         echo "TEST_BOT_ALLOWED_USERS=${{ secrets.TEST_BOT_ALLOWED_USERS }}" >> .env
         
-    - name: Deploy .env and launcher_test_force.py to server
+    - name: Deploy files to server
       run: |
         scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa .env ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/watchdog/
+        scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa telegram_bot.py ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/watchdog/
         scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa launcher_test_force.py ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/watchdog/
         
     - name: Run launcher_test_force.py on server
