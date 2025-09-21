@@ -22,12 +22,12 @@ from telegram_functions import (
 )
 
 
-def check_and_notify(bot_token, allowed_users, is_test=False):
+def check_and_notify(bot_token, allowed_users, is_test=False, force_check=False):
     """Проверяет остатки и отправляет уведомления только при наличии проблем и в рабочие дни"""
     
-    # Проверяем, рабочий ли сегодня день
+    # Проверяем, рабочий ли сегодня день (если не принудительный режим)
     today = datetime.date.today()
-    if not is_working_day(today):
+    if not force_check and not is_working_day(today):
         holiday_info = get_holiday_info(today)
         if holiday_info:
             print(f"📅 Сегодня {holiday_info} - выходной, уведомления не отправляем")
@@ -35,7 +35,10 @@ def check_and_notify(bot_token, allowed_users, is_test=False):
             print(f"📅 Сегодня выходной день - уведомления не отправляем")
         return
     
-    print(f"📅 Сегодня рабочий день - проверяем остатки")
+    if force_check:
+        print(f"📅 Принудительная проверка остатков (игнорируем выходной день)")
+    else:
+        print(f"📅 Сегодня рабочий день - проверяем остатки")
     
     # Получаем транзакции для всех счетов одним запросом
     accounts = get_all_accounts()
@@ -54,11 +57,12 @@ def check_and_notify(bot_token, allowed_users, is_test=False):
     
     # Отправка единого уведомления
     send_balance_analysis_report(analysis_result, 
-                                lambda chat_id, text: send_telegram_message_wrapper(bot_token, chat_id, text, is_test), 
-                                allowed_users)
+                               lambda chat_id, text: send_telegram_message_wrapper(bot_token, chat_id, text, is_test), 
+                               allowed_users)
 
-def main(bot_token, allowed_users, is_test=False):
+def main(bot_token, allowed_users, is_test=False, force_check=False):
     """Основная функция"""
     bot_type = "ТЕСТОВОГО" if is_test else "ОСНОВНОГО"
-    print(f"🚀 Запуск {bot_type} бота мониторинга остатков...")
-    check_and_notify(bot_token, allowed_users, is_test)
+    mode_type = " (ПРИНУДИТЕЛЬНЫЙ РЕЖИМ)" if force_check else ""
+    print(f"🚀 Запуск {bot_type} бота мониторинга остатков{mode_type}...")
+    check_and_notify(bot_token, allowed_users, is_test, force_check)
