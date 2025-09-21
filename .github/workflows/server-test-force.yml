@@ -1,0 +1,44 @@
+name: "Run Force Test on Server"
+
+on:
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  server-test-force:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up SSH key
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+      
+    - name: Create .env file
+      run: |
+        echo "FINOLOG_API_KEY=${{ secrets.FINOLOG_API_KEY }}" > .env
+        echo "FINOLOG_BIZ_ID=${{ secrets.FINOLOG_BIZ_ID }}" >> .env
+        echo "THREATENING_ACCOUNT_IDS=${{ secrets.THREATENING_ACCOUNT_IDS }}" >> .env
+        echo "THREATENING_THRESHOLD=${{ secrets.THREATENING_THRESHOLD }}" >> .env
+        echo "THREATENING_DAYS_AHEAD=${{ secrets.THREATENING_DAYS_AHEAD }}" >> .env
+        echo "MAIN_BOT_TOKEN=${{ secrets.MAIN_BOT_TOKEN }}" >> .env
+        echo "MAIN_BOT_ALLOWED_USERS=${{ secrets.MAIN_BOT_ALLOWED_USERS }}" >> .env
+        echo "TEST_BOT_TOKEN=${{ secrets.TEST_BOT_TOKEN }}" >> .env
+        echo "TEST_BOT_ALLOWED_USERS=${{ secrets.TEST_BOT_ALLOWED_USERS }}" >> .env
+        
+    - name: Deploy .env and launcher_test_force.py to server
+      run: |
+        scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa .env ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/watchdog/
+        scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa launcher_test_force.py ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/watchdog/
+        
+    - name: Run launcher_test_force.py on server
+      run: |
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ~/watchdog && mkdir -p logs && python3 launcher_test_force.py | tee logs/launcher_test_force.log"
+        
+    - name: Get logs
+      run: |
+        scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/watchdog/logs/launcher_test_force.log logs/ || echo "No launcher_test_force.log file found"
