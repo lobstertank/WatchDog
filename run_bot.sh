@@ -6,12 +6,15 @@
 # Переходим в домашнюю директорию пользователя
 cd ~/watchdog
 
+# Создаем директорию логов, если отсутствует
+mkdir -p logs
+
 # Логируем запуск
-echo "$(date): Запуск проверки остатков" >> bot.log
+echo "$(date): Запуск проверки остатков" >> logs/bot.log
 
 # Запускаем Python скрипт
-python3 telegram_bot.py >> bot.log 2>&1
+python3 telegram_bot.py >> logs/bot.log 2>&1
 
 # Логируем завершение
-echo "$(date): Проверка завершена" >> bot.log
-echo "---" >> bot.log
+echo "$(date): Проверка завершена" >> logs/bot.log
+echo "---" >> logs/bot.log

@@ -89,10 +89,10 @@ TELEGRAM_CONFIG = {
 # Создайте файл с расписанием (ВАЖНО: без символов \r)
 cat > /tmp/watchdog_cron << 'EOF'
 # WatchDog - мониторинг остатков
-# Обновление календаря праздников - каждый месяц 1 числа в 14:00 по Москве
-0 14 1 * * /home/user/watchdog/run_holiday_updater.sh
-# Проверка остатков - каждый час с 9:00 до 18:00 каждый день
-0 9-18 * * * /home/user/watchdog/run_bot_with_holidays.sh
+# Обновление календаря праздников - первый понедельник месяца в 14:00 (MSK)
+0 14 1-7 * 1 /home/sheinin/watchdog/run_holiday_updater.sh
+# Проверка остатков - каждый час с 9:00 до 18:00 (MSK)
+0 9-18 * * * /home/sheinin/watchdog/run_bot_with_holidays.sh
 EOF
 
 # Установите расписание
@@ -110,13 +110,13 @@ sudo systemctl restart cron
 ### Просмотр логов
 ```bash
 # Основной лог бота
-tail -f ~/watchdog/bot.log
+tail -f ~/watchdog/logs/bot.log
 
 # Лог обновления календаря
-tail -f ~/watchdog/holiday_updater.log
+tail -f ~/watchdog/logs/holiday_updater.log
 
 # Логи за сегодня
-grep "$(date +%Y-%m-%d)" ~/watchdog/bot.log
+grep "$(date +%Y-%m-%d)" ~/watchdog/logs/bot.log
 ```
 
 ### Тестирование
