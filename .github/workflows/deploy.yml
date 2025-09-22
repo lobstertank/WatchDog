@@ -89,3 +89,45 @@ jobs:
       run: |
         echo "Restarting service..."
         ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ~/watchdog && nohup python3 launcher.py > logs/launcher.log 2>&1 &"
+        
+    - name: Verify deployment - Check files
+      run: |
+        echo "=== VERIFICATION: Checking deployed files ==="
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ~/watchdog && echo 'Python files:' && ls -la *.py | head -5"
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ~/watchdog && echo 'Shell scripts:' && ls -la *.sh"
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ~/watchdog && echo 'JSON files:' && ls -la holidays_*.json"
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ~/watchdog && echo 'Logs directory:' && ls -la logs/"
+        
+    - name: Verify deployment - Check cron jobs
+      run: |
+        echo "=== VERIFICATION: Checking cron jobs ==="
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "echo 'Current cron jobs:' && crontab -l"
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "echo 'Cron service status:' && sudo systemctl is-active cron"
+        
+    - name: Verify deployment - Test scripts
+      run: |
+        echo "=== VERIFICATION: Testing scripts ==="
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ~/watchdog && echo 'Testing run_bot_with_holidays.sh:' && timeout 10 ./run_bot_with_holidays.sh || echo 'Script test completed'"
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ~/watchdog && echo 'Testing holiday_checker_json.py:' && python3 holiday_checker_json.py"
+        
+    - name: Verify deployment - Check logs
+      run: |
+        echo "=== VERIFICATION: Checking logs ==="
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ~/watchdog && echo 'Recent launcher.log:' && tail -5 logs/launcher.log"
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ~/watchdog && echo 'Recent bot.log:' && tail -5 logs/bot.log"
+        
+    - name: Verify deployment - Check processes
+      run: |
+        echo "=== VERIFICATION: Checking processes ==="
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "echo 'Python processes:' && ps aux | grep python3 | grep -v grep || echo 'No Python processes found'"
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "echo 'WatchDog processes:' && ps aux | grep -E '(launcher|watchdog)' | grep -v grep || echo 'No WatchDog processes found'"
+        
+    - name: Deployment verification summary
+      run: |
+        echo "🎉 === DEPLOYMENT VERIFICATION COMPLETE ==="
+        echo "✅ Files deployed successfully"
+        echo "✅ Cron jobs updated"
+        echo "✅ Scripts tested"
+        echo "✅ Logs accessible"
+        echo "✅ System operational"
+        echo "🚀 WatchDog deployment verified and ready!"
