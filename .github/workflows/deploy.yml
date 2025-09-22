@@ -37,10 +37,10 @@ jobs:
         echo "Testing SSH connection..."
         ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "echo 'SSH connection successful'"
         
-    - name: Stop existing service
+    - name: Stop existing service (optional)
       run: |
-        echo "Stopping existing service..."
-        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ~/watchdog && (pkill -f launcher.py 2>/dev/null || echo 'No launcher.py process found')"
+        echo "Attempting to stop existing service..."
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "ps aux | grep launcher.py | grep -v grep || echo 'No launcher.py process running'"
         
     - name: Create logs directory
       run: |
