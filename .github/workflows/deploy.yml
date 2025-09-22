@@ -40,7 +40,7 @@ jobs:
     - name: Stop existing service
       run: |
         echo "Stopping existing service..."
-        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ~/watchdog && pkill -f launcher.py || true"
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ~/watchdog && (pkill -f launcher.py 2>/dev/null || echo 'No launcher.py process found')"
         
     - name: Create logs directory
       run: |
