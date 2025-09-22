@@ -21,3 +21,4 @@ WatchDog is a monitoring and notification system that tracks financial accounts 
 - Environment variables stored as GitHub Secrets
 - Cron job for regular monitoring
 
+
