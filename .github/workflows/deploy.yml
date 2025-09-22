@@ -32,22 +32,47 @@ jobs:
         echo "TEST_BOT_TOKEN=${{ secrets.TEST_BOT_TOKEN }}" >> .env
         echo "TEST_BOT_ALLOWED_USERS=${{ secrets.TEST_BOT_ALLOWED_USERS }}" >> .env
         
-    - name: Deploy to server
+    - name: Test SSH connection
       run: |
-        # Stop the existing service
+        echo "Testing SSH connection..."
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "echo 'SSH connection successful'"
+        
+    - name: Stop existing service
+      run: |
+        echo "Stopping existing service..."
         ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ~/watchdog && pkill -f launcher.py || true"
         
-        # Create logs directory
+    - name: Create logs directory
+      run: |
+        echo "Creating logs directory..."
         ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p ~/watchdog/logs"
         
-        # Deploy files
+    - name: Deploy .env file
+      run: |
+        echo "Deploying .env file..."
         scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa .env ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/watchdog/
+        
+    - name: Deploy Python files
+      run: |
+        echo "Deploying Python files..."
         scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa *.py ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/watchdog/
+        
+    - name: Deploy shell scripts
+      run: |
+        echo "Deploying shell scripts..."
         scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa *.sh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/watchdog/
+        
+    - name: Deploy holiday files
+      run: |
+        echo "Deploying holiday files..."
         scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa holidays_*.json ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/watchdog/
         
-        # Set execute permissions
+    - name: Set execute permissions
+      run: |
+        echo "Setting execute permissions..."
         ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ~/watchdog && chmod +x *.sh"
         
-        # Restart the service
+    - name: Restart service
+      run: |
+        echo "Restarting service..."
         ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ~/watchdog && nohup python3 launcher.py > logs/launcher.log 2>&1 &"
