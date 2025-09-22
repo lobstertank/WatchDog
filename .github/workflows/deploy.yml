@@ -72,6 +72,19 @@ jobs:
         echo "Setting execute permissions..."
         ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ~/watchdog && chmod +x *.sh"
         
+    - name: Update cron jobs
+      run: |
+        echo "Updating cron jobs..."
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cat > /tmp/watchdog_cron << 'EOF'
+# WatchDog - мониторинг остатков
+# Основной бот: 9:00-18:00 каждый час (скрипт сам пропускает праздники)
+0 9-18 * * * cd /home/sheinin/watchdog && ./run_bot_with_holidays.sh
+# Обновление праздников: первый понедельник месяца в 14:00
+0 14 1-7 * 1 cd /home/sheinin/watchdog && ./run_holiday_updater.sh
+EOF"
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "crontab /tmp/watchdog_cron && rm /tmp/watchdog_cron"
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "echo 'Cron jobs updated:' && crontab -l"
+        
     - name: Restart service
       run: |
         echo "Restarting service..."
