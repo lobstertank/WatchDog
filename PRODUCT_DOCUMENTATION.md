@@ -9,6 +9,8 @@ WatchDog is a monitoring system that tracks financial accounts in Finolog and se
 - Provide balance reports on demand
 - Support for both production and test environments
 - Automated deployment via GitHub Actions
+- Holiday-aware scheduling (skips non-working days)
+- Force-run capability for manual checks regardless of holidays
 
 ## Architecture
 The application is structured in a modular way with the following components:
@@ -16,10 +18,19 @@ The application is structured in a modular way with the following components:
 ### Core Modules
 - `launcher.py` - Main entry point for the production bot
 - `launcher_test.py` - Entry point for the test bot
+- `launcher_force.py` - Entry point for forcing the bot to run regardless of holidays
+- `launcher_notify.py` - Entry point for sending custom notifications
 - `api_functions.py` - Functions for interacting with the Finolog API
 - `telegram_functions.py` - Functions for sending Telegram messages
 - `config.py` - Configuration settings
 - `contacts.py` - Bot-specific configurations
+- `holiday_checker_json.py` - Functions for checking if today is a working day
+- `holiday_updater_minimal.py` - Functions for updating the holiday calendar
+
+### Shell Scripts
+- `run_bot.sh` - Script for running the bot directly
+- `run_bot_with_holidays.sh` - Script for running the bot with holiday checking
+- `run_holiday_updater.sh` - Script for updating the holiday calendar
 
 ### Configuration
 - `.env` - Environment variables (not in repository)
@@ -50,8 +61,23 @@ Messages are sent using the `send_telegram_message_wrapper` function which suppo
 - Regular messages
 - Test mode messages (prefixed with "🧪 ТЕСТ: ")
 
+## Holiday Handling
+The application is aware of holidays and working days:
+- Uses JSON files (`holidays_2025.json`, `holidays_2026.json`) to store holiday information
+- Automatically skips checks on non-working days
+- Can be forced to run regardless of holidays using `launcher_force.py`
+- Holiday calendar is automatically updated on the first Monday of each month
+
 ## CI/CD Pipeline
 The project uses GitHub Actions for continuous integration and deployment:
 - Automated testing on code changes
 - Manual or automated deployment to production
 - Release management with versioning
+- Automatic verification of deployment success
+
+## Troubleshooting
+Common issues and their solutions:
+- **Bot not running**: Check cron jobs with `crontab -l` and logs in `logs/bot.log`
+- **API errors**: Verify API keys in `.env` file
+- **Holiday detection issues**: Check holiday files and run `holiday_checker_json.py` manually
+- **Deployment failures**: Check GitHub Actions logs and SSH connectivity

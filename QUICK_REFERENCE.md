@@ -22,19 +22,19 @@ ssh n8n-server "ps aux | grep -i watchdog"
 ### Просмотр логов
 ```bash
 # Логи основного бота
-ssh n8n-server "tail -f ~/watchdog/logs/bot.log"
+ssh n8n-server "tail -f ~/watchdog/logs/cron.log"
 
 # Логи обновления праздников
 ssh n8n-server "tail -f ~/watchdog/logs/holiday_updater.log"
 
 # Логи за сегодня
-ssh n8n-server "grep \"\$(date +%Y-%m-%d)\" ~/watchdog/logs/bot.log"
+ssh n8n-server "grep \"\$(date +%Y-%m-%d)\" ~/watchdog/logs/cron.log"
 ```
 
 ### Ручной запуск
 ```bash
 # Основной бот
-ssh n8n-server "cd ~/watchdog && ./run_bot_with_holidays.sh"
+ssh n8n-server "cd ~/watchdog && ./run_bot.sh"
 
 # Тестовый бот
 ssh n8n-server "cd ~/watchdog && python3 launcher_test.py"
@@ -131,18 +131,18 @@ ssh n8n-server "cd ~/watchdog && tar -xzf WG_backup_*.tgz"
 
 ### Очистка логов
 ```bash
-ssh n8n-server "cd ~/watchdog/logs && > bot.log && > holiday_updater.log"
+ssh n8n-server "cd ~/watchdog/logs && > cron.log && > holiday_updater.log"
 ```
 
 ## 📋 Текущая конфигурация
 
 ### Cron расписание
 ```bash
-# Основной бот: 9:00-18:00 каждый час (скрипт сам пропускает праздники)
-0 9-18 * * * cd /home/sheinin/watchdog && ./run_bot_with_holidays.sh
+# Основной бот: 9:00-18:00 каждый час
+0 9-18 * * * cd /home/sheinin/watchdog && ./run_bot.sh >> /home/sheinin/watchdog/logs/cron.log 2>&1
 
 # Обновление праздников: первый понедельник месяца в 14:00
-0 14 1-7 * 1 cd /home/sheinin/watchdog && ./run_holiday_updater.sh
+0 14 1-7 * 1 cd /home/sheinin/watchdog && ./run_holiday_updater.sh >> /home/sheinin/watchdog/logs/holiday_updater.log 2>&1
 ```
 
 ### Основные файлы
@@ -158,7 +158,7 @@ ssh n8n-server "cd ~/watchdog/logs && > bot.log && > holiday_updater.log"
 ├── holidays_2025.json       # Календарь 2025
 ├── holidays_2026.json       # Календарь 2026
 └── logs/                    # Папка логов
-    ├── bot.log              # Логи основного бота
+    ├── cron.log             # Логи основного бота
     └── holiday_updater.log  # Логи обновления праздников
 ```
 

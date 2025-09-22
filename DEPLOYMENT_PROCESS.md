@@ -69,13 +69,46 @@ If you need to deploy manually, follow these steps:
 6. Click "Run workflow" button
 
 ## Cron Job Configuration
-The bot is configured to run every 15 minutes via cron:
+The bot is configured to run via cron with the following schedule:
 
 ```
-*/15 * * * * cd ~/watchdog && python3 launcher.py >> logs/launcher.log 2>&1
+# Основной бот: 9:00-18:00 каждый час (скрипт сам пропускает праздники)
+0 9-18 * * * cd /home/sheinin/watchdog && ./run_bot_with_holidays.sh
+
+# Обновление праздников: первый понедельник месяца в 14:00
+0 14 1-7 * 1 cd /home/sheinin/watchdog && ./run_holiday_updater.sh
 ```
 
 To edit the cron job:
 ```
 crontab -e
 ```
+
+## Verification After Deployment
+
+After deploying, verify that the system is working correctly:
+
+1. Check that all files were deployed:
+   ```
+   ls -la ~/watchdog
+   ```
+
+2. Verify cron jobs are configured correctly:
+   ```
+   crontab -l
+   ```
+
+3. Check logs directory exists and has proper permissions:
+   ```
+   ls -la ~/watchdog/logs
+   ```
+
+4. Test the bot manually:
+   ```
+   cd ~/watchdog && ./run_bot_with_holidays.sh
+   ```
+
+5. Check the logs for any errors:
+   ```
+   tail -f ~/watchdog/logs/bot.log
+   ```
