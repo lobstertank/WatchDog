@@ -37,9 +37,17 @@ jobs:
         # Stop the existing service
         ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ~/watchdog && pkill -f launcher.py || true"
         
+        # Create logs directory
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p ~/watchdog/logs"
+        
         # Deploy files
         scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa .env ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/watchdog/
         scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa *.py ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/watchdog/
+        scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa *.sh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/watchdog/
+        scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa *.json ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/watchdog/
+        
+        # Set execute permissions
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ~/watchdog && chmod +x *.sh"
         
         # Restart the service
         ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ~/watchdog && nohup python3 launcher.py > logs/launcher.log 2>&1 &"

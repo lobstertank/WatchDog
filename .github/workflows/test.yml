@@ -108,7 +108,8 @@ jobs:
             if [ -f "$script" ]; then
                 echo "✅ $script exists"
             else
-                echo "⚠️  $script not found (optional)"
+                echo "❌ Missing: $script"
+                exit 1
             fi
         done
         
